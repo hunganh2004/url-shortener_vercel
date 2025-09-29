@@ -12,10 +12,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // POST /api/shorten
 app.post("/api/shorten", async (req, res) => {
-    const { url } = req.body;
+    const { url, code } = req.body;
     if (!url) return res.status(400).json({ error: "Thiếu URL" });
 
-    const code = nanoid(6);
+    if (!code) {
+        code = nanoid(6) // nếu client không gửi code, tạo tự động
+    }
 
     const { error } = await supabase
         .from("urls")
