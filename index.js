@@ -1,36 +1,45 @@
 import express from "express";
 import { nanoid } from "nanoid";
-import { kv } from "@vercel/kv"
+import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 app.use(express.json());
 
+// Kết nối Supabase
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// API rút gọn link
+// POST /api/shorten
 app.post("/api/shorten", async (req, res) => {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: "Thiếu URL" });
 
     const code = nanoid(6);
 
-    // 🔹 Lưu vào Vercel KV
-    await kv.set(code, url);
+    const { error } = await supabase
+        .from("urls")
+        .insert([{ code, original_url: url }]);
 
-    // 🔹 Lấy domain thật từ request
+    if (error) return res.status(500).json({ error: error.message });
+
     const host = req.headers.host;
     const protocol = req.headers["x-forwarded-proto"] || "https";
-
     res.json({ shortUrl: `${protocol}://${host}/${code}` });
 });
 
-// Redirect khi truy cập link ngắn
+// GET /:code
 app.get("/:code", async (req, res) => {
-    const url = await kv.get(req.params.code)
-    if (url) {
-        res.redirect(url);
-    } else {
-        res.status(404).send("Link không tồn tại!");
-    }
+    const { code } = req.params;
+
+    const { data, error } = await supabase
+        .from("urls")
+        .select("original_url")
+        .eq("code", code)
+        .single();
+
+    if (error || !data) return res.status(404).send("Link không tồn tại!");
+    res.redirect(data.original_url);
 });
 
 export default app;
