@@ -19,12 +19,16 @@ app.post("/api/shorten", (req, res) => {
 
 // Redirect khi truy cập link ngắn
 app.get("/:code", (req, res) => {
-    const url = db[req.params.code];
-    if (url) {
-        res.redirect(url);
-    } else {
-        res.status(404).send("Link không tồn tại!");
-    }
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "Thiếu URL" });
+
+    const code = nanoid(6);
+    db[code] = url;
+
+    const host = req.headers.host;
+    const protocol = req.headers["x-forwarded-proto"] || "http";
+
+    res.json({ shortUrl: `${protocol}://${host}/${code}` });
 });
 
 export default app
