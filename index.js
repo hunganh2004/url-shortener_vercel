@@ -13,10 +13,24 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // POST /api/shorten
 app.post("/api/shorten", async (req, res) => {
     const { url, code } = req.body;
+    const host = req.headers.host;
+    const protocol = req.headers["x-forwarded-proto"] || "https";
+
     if (!url) return res.status(400).json({ error: "Thiếu URL" });
 
     if (!code) {
         code = nanoid(6) // nếu client không gửi code, tạo tự động
+    } else {
+        // Kiểm tra code đã tồn tại chưa
+        const { data: existing} = await supabase
+            .from("urls")
+            .select("code")
+            .eq("code", code)
+            .single()
+        
+        if (existing) {
+            return res.status(400).json({ error: `Code đã tồn tại: ${protocol}://${host}/${code}, vui lòng chọn code khác!` })
+        }
     }
 
     const { error } = await supabase
@@ -24,9 +38,6 @@ app.post("/api/shorten", async (req, res) => {
         .insert([{ code, original_url: url }]);
 
     if (error) return res.status(500).json({ error: error.message });
-
-    const host = req.headers.host;
-    const protocol = req.headers["x-forwarded-proto"] || "https";
     res.json({ shortUrl: `${protocol}://${host}/${code}` });
 });
 
