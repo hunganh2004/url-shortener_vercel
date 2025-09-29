@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>URL Shortener</title>
+    <style>
+        body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 50px auto;
+        text-align: center;
+        }
+        input {
+        width: 70%;
+        padding: 10px;
+        margin: 10px 0;
+        }
+        button {
+        padding: 10px 20px;
+        cursor: pointer;
+        }
+        #result {
+        margin-top: 20px;
+        }
+        a {
+        color: blue;
+        }
+    </style>
+</head>
+<body>
+    <h2>🔗 URL Shortener</h2>
+    <form id="shortenForm">
+        <input type="url" id="urlInput" placeholder="Nhập URL cần rút gọn..." required />
+        <button type="submit">Rút gọn</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        document.getElementById("shortenForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const url = document.getElementById("urlInput").value;
+        const response = await fetch("/api/shorten", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url })
+        });
+
+        const data = await response.json();
+        const resultDiv = document.getElementById("result");
+
+        if (data.shortUrl) {
+            resultDiv.innerHTML = `
+            <p>Link rút gọn: 
+                <a href="${data.shortUrl}" target="_blank">${data.shortUrl}</a>
+            </p>`;
+        } else {
+            resultDiv.innerHTML = `<p style="color:red;">Có lỗi: ${data.error || "Không xác định"}</p>`;
+        }
+        });
+    </script>
+</body>
+</html>
